@@ -26,20 +26,20 @@ db.createCollection("recyclingBins", {
       bsonType: "object",
       required: ["binId", "binType", "status", "isOverflow", "fillLevel", "capacity", "area", "location"],
       properties: {
-        binId:             { bsonType: "number" },
-        binType:           { bsonType: "string" },
-        status:            { bsonType: "string" },
-        isOverflow:        { bsonType: "bool" },
-        fillLevel:         { bsonType: "number", minimum: 0, maximum: 100 },
-        capacity:          { bsonType: "number", minimum: 0 },
-        lastCollectedAt:   { bsonType: "date" },
+        binId: { bsonType: "number" },
+        binType: { bsonType: "string" },
+        status: { bsonType: "string" },
+        isOverflow: { bsonType: "bool" },
+        fillLevel: { bsonType: "number", minimum: 0, maximum: 100 },
+        capacity: { bsonType: "number", minimum: 0 },
+        lastCollectedAt: { bsonType: "date" },
         acceptedMaterials: { bsonType: "array", items: { bsonType: "string" } },
-        area:              { bsonType: "string" },
+        area: { bsonType: "string" },
         location: {
           bsonType: "object",
           required: ["type", "coordinates"],
           properties: {
-            type:        { enum: ["Point"] },
+            type: { enum: ["Point"] },
             coordinates: { bsonType: "array", minItems: 2, maxItems: 2, items: { bsonType: "number" } }
           }
         },
@@ -50,8 +50,8 @@ db.createCollection("recyclingBins", {
             required: ["maintenancePurpose", "maintenanceDate"],
             properties: {
               maintenancePurpose: { bsonType: "string" },
-              description:        { bsonType: "string" },
-              maintenanceDate:    { bsonType: "timestamp" }
+              description: { bsonType: "string" },
+              maintenanceDate: { bsonType: "timestamp" }
             }
           }
         }
@@ -251,7 +251,7 @@ db.recyclingBins.insertMany([
 //   - area (String): arrondissement of the report, to group reports by zone
 //   - resolvedAt (Date or null): when the issue was fixed, to compute resolution times
 //   - binId (Number, optional): reference to recyclingBins.binId for overflowing / missed collection reports
-// reportedAt is stored as a Date (not a Timestamp) so it can be used in date range queries and date arithmetic.
+// reportedAt is stored as a Date so it can be used in date range queries and date arithmetic.
 db.wasteReports.drop();
 
 db.createCollection("wasteReports", {
@@ -260,21 +260,21 @@ db.createCollection("wasteReports", {
       bsonType: "object",
       required: ["category", "wasteType", "description", "status", "reportedAt", "area", "location", "reporter"],
       properties: {
-        category:        { enum: ["illegalDumping", "missedCollection", "overflowingBin", "hazardousWaste"] },
-        wasteType:       { bsonType: "string" },
-        description:     { bsonType: "string" },
-        status:          { bsonType: "string" },
+        category: { enum: ["illegalDumping", "missedCollection", "overflowingBin", "hazardousWaste"] },
+        wasteType: { bsonType: "string" },
+        description: { bsonType: "string" },
+        status: { bsonType: "string" },
         estimatedWeight: { bsonType: "number", minimum: 0 },
-        reportedAt:      { bsonType: "date" },
-        resolvedAt:      { bsonType: ["date", "null"] },
-        photos:          { bsonType: "array", items: { bsonType: "string" } },
-        area:            { bsonType: "string" },
-        binId:           { bsonType: "number" },
+        reportedAt: { bsonType: "date" },
+        resolvedAt: { bsonType: ["date", "null"] },
+        photos: { bsonType: "array", items: { bsonType: "string" } },
+        area: { bsonType: "string" },
+        binId: { bsonType: "number" },
         location: {
           bsonType: "object",
           required: ["type", "coordinates"],
           properties: {
-            type:        { enum: ["Point"] },
+            type: { enum: ["Point"] },
             coordinates: { bsonType: "array", minItems: 2, maxItems: 2, items: { bsonType: "number" } }
           }
         },
@@ -282,7 +282,7 @@ db.createCollection("wasteReports", {
           bsonType: "object",
           required: ["username", "isVerifiedUser"],
           properties: {
-            username:       { bsonType: "string" },
+            username: { bsonType: "string" },
             isVerifiedUser: { bsonType: "bool" }
           }
         }
@@ -302,3 +302,160 @@ db.wasteReports.createIndex({ location: "2dsphere" });
 db.wasteReports.createIndex({ "reporter.username": 1 });
 db.wasteReports.createIndex({ binId: 1 });
 db.wasteReports.createIndex({ description: "text", wasteType: "text" });
+
+
+// 5. Insert waste reports (29 reports)
+db.wasteReports.insertMany([
+  // illegal dumping
+  { category: "illegalDumping", wasteType: "bulky items", description: "Old mattress and broken chairs left on the pavement",
+    status: "reported", estimatedWeight: 45.0, reportedAt: daysAgo(3), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r01-1.jpg", "https://citytrash.example/photos/r01-2.jpg"],
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3550, 48.8900] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "construction debris", description: "Bags of rubble and plaster blocking the pavement",
+    status: "inProgress", estimatedWeight: 120.0, reportedAt: daysAgo(6), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r02-1.jpg"],
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3440, 48.8880] },
+    reporter: { username: "sofiane75", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "household waste", description: "Several rubbish bags dumped in a doorway, strong smell",
+    status: "reported", estimatedWeight: 25.0, reportedAt: daysAgo(12), resolvedAt: null,
+    photos: [],
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3510, 48.8850] },
+    reporter: { username: "anon_user42", isVerifiedUser: false } },
+  { category: "illegalDumping", wasteType: "cardboard", description: "Pile of cardboard boxes left next to a shop",
+    status: "reported", estimatedWeight: 15.0, reportedAt: daysAgo(2), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r04-1.jpg"],
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3780, 48.8620] },
+    reporter: { username: "julien.m", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "electronics", description: "Old TV and microwave abandoned near the metro entrance",
+    status: "inProgress", estimatedWeight: 30.0, reportedAt: daysAgo(9), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r05-1.jpg", "https://citytrash.example/photos/r05-2.jpg"],
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3720, 48.8580] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "bulky items", description: "Sofa and mattress dumped in the street",
+    status: "reported", estimatedWeight: 60.0, reportedAt: daysAgo(5), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r06-1.jpg", "https://citytrash.example/photos/r06-2.jpg", "https://citytrash.example/photos/r06-3.jpg"],
+    area: "Paris 20e", location: { type: "Point", coordinates: [2.3980, 48.8700] },
+    reporter: { username: "camille_r", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "household waste", description: "Rubbish bags left along the canal",
+    status: "reported", estimatedWeight: 20.0, reportedAt: daysAgo(15), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r07-1.jpg"],
+    area: "Paris 19e", location: { type: "Point", coordinates: [2.3770, 48.8850] },
+    reporter: { username: "thomas_p", isVerifiedUser: false } },
+  { category: "illegalDumping", wasteType: "green waste", description: "Branches and garden waste dumped in front of a school",
+    status: "reported", estimatedWeight: 35.0, reportedAt: daysAgo(20), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r08-1.jpg"],
+    area: "Paris 10e", location: { type: "Point", coordinates: [2.3600, 48.8760] },
+    reporter: { username: "leaD", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "bulky items", description: "Wardrobe left on the pavement",
+    status: "resolved", estimatedWeight: 40.0, reportedAt: daysAgo(18), resolvedAt: daysAgo(16),
+    photos: ["https://citytrash.example/photos/r09-1.jpg"],
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3800, 48.8600] },
+    reporter: { username: "sofiane75", isVerifiedUser: true } },
+  { category: "illegalDumping", wasteType: "construction debris", description: "Tiles and bricks dumped behind a building",
+    status: "reported", estimatedWeight: 80.0, reportedAt: daysAgo(45), resolvedAt: null,
+    photos: [],
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3470, 48.8870] },
+    reporter: { username: "thomas_p", isVerifiedUser: false } },
+  { category: "illegalDumping", wasteType: "household waste", description: "Fake report, nothing found on site",
+    status: "rejected", estimatedWeight: 0.0, reportedAt: daysAgo(7), resolvedAt: null,
+    photos: [],
+    area: "Paris 20e", location: { type: "Point", coordinates: [2.3900, 48.8680] },
+    reporter: { username: "anon_user42", isVerifiedUser: false } },
+  { category: "illegalDumping", wasteType: "bulky items", description: "Old furniture left in a courtyard",
+    status: "resolved", estimatedWeight: 50.0, reportedAt: daysAgo(200), resolvedAt: daysAgo(198),
+    photos: ["https://citytrash.example/photos/r12-1.jpg"],
+    area: "Paris 3e", location: { type: "Point", coordinates: [2.3622, 48.8630] },
+    reporter: { username: "nadia.k", isVerifiedUser: true } },
+
+  // overflowing bins
+  { category: "overflowingBin", wasteType: "household waste", description: "Bin overflowing, bags on the ground and bad smell",
+    status: "reported", estimatedWeight: 10.0, reportedAt: daysAgo(2), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r13-1.jpg"], binId: 1003,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3800, 48.8590] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "household waste", description: "Street bin full since the weekend",
+    status: "resolved", estimatedWeight: 8.0, reportedAt: daysAgo(8), resolvedAt: daysAgo(7),
+    photos: [], binId: 1003,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3800, 48.8590] },
+    reporter: { username: "sofiane75", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "household waste", description: "Bin overflowing again",
+    status: "resolved", estimatedWeight: 6.5, reportedAt: daysAgo(16), resolvedAt: daysAgo(15),
+    photos: [], binId: 1003,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3800, 48.8590] },
+    reporter: { username: "anon_user42", isVerifiedUser: false } },
+  { category: "overflowingBin", wasteType: "glass", description: "Glass bin full, bottles left around it",
+    status: "reported", estimatedWeight: 15.0, reportedAt: daysAgo(4), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r16-1.jpg"], binId: 1001,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3745, 48.8655] },
+    reporter: { username: "julien.m", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "glass", description: "Broken glass around the overflowing glass bin",
+    status: "resolved", estimatedWeight: 12.0, reportedAt: daysAgo(13), resolvedAt: daysAgo(12),
+    photos: ["https://citytrash.example/photos/r17-1.jpg"], binId: 1001,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3745, 48.8655] },
+    reporter: { username: "camille_r", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "plastic", description: "Packaging bin overflowing near the park entrance",
+    status: "inProgress", estimatedWeight: 9.0, reportedAt: daysAgo(3), resolvedAt: null,
+    photos: [], binId: 1006,
+    area: "Paris 19e", location: { type: "Point", coordinates: [2.3820, 48.8809] },
+    reporter: { username: "leaD", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "plastic", description: "Plastic bottles all around the packaging bin",
+    status: "resolved", estimatedWeight: 7.0, reportedAt: daysAgo(10), resolvedAt: daysAgo(9),
+    photos: ["https://citytrash.example/photos/r19-1.jpg"], binId: 1006,
+    area: "Paris 19e", location: { type: "Point", coordinates: [2.3820, 48.8809] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "overflowingBin", wasteType: "household waste", description: "Bin full and lid cannot close",
+    status: "reported", estimatedWeight: 5.0, reportedAt: daysAgo(6), resolvedAt: null,
+    photos: [], binId: 1004,
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3497, 48.8838] },
+    reporter: { username: "thomas_p", isVerifiedUser: false } },
+  { category: "overflowingBin", wasteType: "household waste", description: "Overflowing bin attracting pigeons",
+    status: "resolved", estimatedWeight: 6.0, reportedAt: daysAgo(30), resolvedAt: daysAgo(29),
+    photos: [], binId: 1004,
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3497, 48.8838] },
+    reporter: { username: "nadia.k", isVerifiedUser: true } },
+
+  // missed collections
+  { category: "missedCollection", wasteType: "plastic", description: "Packaging bin not collected on the scheduled day",
+    status: "resolved", estimatedWeight: 20.0, reportedAt: daysAgo(7), resolvedAt: daysAgo(6),
+    photos: [], binId: 1002,
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3692, 48.8533] },
+    reporter: { username: "julien.m", isVerifiedUser: true } },
+  { category: "missedCollection", wasteType: "household waste", description: "Collection truck did not come this week",
+    status: "resolved", estimatedWeight: 18.0, reportedAt: daysAgo(25), resolvedAt: daysAgo(23),
+    photos: [],
+    area: "Paris 11e", location: { type: "Point", coordinates: [2.3760, 48.8640] },
+    reporter: { username: "leaD", isVerifiedUser: true } },
+  { category: "missedCollection", wasteType: "glass", description: "Glass bin skipped by the collection round",
+    status: "resolved", estimatedWeight: 25.0, reportedAt: daysAgo(14), resolvedAt: daysAgo(11),
+    photos: ["https://citytrash.example/photos/r24-1.jpg"], binId: 1005,
+    area: "Paris 18e", location: { type: "Point", coordinates: [2.3387, 48.8845] },
+    reporter: { username: "sofiane75", isVerifiedUser: true } },
+  { category: "missedCollection", wasteType: "organic", description: "Organic waste bin not emptied, strong smell",
+    status: "resolved", estimatedWeight: 12.0, reportedAt: daysAgo(5), resolvedAt: daysAgo(4.5),
+    photos: [], binId: 1007,
+    area: "Paris 19e", location: { type: "Point", coordinates: [2.3700, 48.8890] },
+    reporter: { username: "camille_r", isVerifiedUser: true } },
+  { category: "missedCollection", wasteType: "glass", description: "Glass bin not collected for two weeks",
+    status: "resolved", estimatedWeight: 30.0, reportedAt: daysAgo(20), resolvedAt: daysAgo(16),
+    photos: [], binId: 1011,
+    area: "Paris 15e", location: { type: "Point", coordinates: [2.2930, 48.8417] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "missedCollection", wasteType: "textile", description: "Textile container not emptied, bags left next to it",
+    status: "reported", estimatedWeight: 15.0, reportedAt: daysAgo(9), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r27-1.jpg"], binId: 1008,
+    area: "Paris 10e", location: { type: "Point", coordinates: [2.3655, 48.8721] },
+    reporter: { username: "anon_user42", isVerifiedUser: false } },
+
+  // hazardous waste
+  { category: "hazardousWaste", wasteType: "chemicals", description: "Paint and solvent cans left on the pavement",
+    status: "inProgress", estimatedWeight: 12.0, reportedAt: daysAgo(4), resolvedAt: null,
+    photos: ["https://citytrash.example/photos/r28-1.jpg", "https://citytrash.example/photos/r28-2.jpg"],
+    area: "Paris 13e", location: { type: "Point", coordinates: [2.3554, 48.8310] },
+    reporter: { username: "marie_dupont", isVerifiedUser: true } },
+  { category: "hazardousWaste", wasteType: "batteries", description: "Box of used batteries dumped near a playground",
+    status: "resolved", estimatedWeight: 3.5, reportedAt: daysAgo(11), resolvedAt: daysAgo(10),
+    photos: ["https://citytrash.example/photos/r29-1.jpg"],
+    area: "Paris 5e", location: { type: "Point", coordinates: [2.3461, 48.8462] },
+    reporter: { username: "nadia.k", isVerifiedUser: true } }
+]);
