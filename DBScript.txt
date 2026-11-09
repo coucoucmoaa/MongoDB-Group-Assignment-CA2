@@ -245,3 +245,60 @@ db.recyclingBins.insertMany([
     ]
   }
 ]);
+
+
+// 4. wasteReports collection
+//   - area (String): arrondissement of the report, to group reports by zone
+//   - resolvedAt (Date or null): when the issue was fixed, to compute resolution times
+//   - binId (Number, optional): reference to recyclingBins.binId for overflowing / missed collection reports
+// reportedAt is stored as a Date (not a Timestamp) so it can be used in date range queries and date arithmetic.
+db.wasteReports.drop();
+
+db.createCollection("wasteReports", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["category", "wasteType", "description", "status", "reportedAt", "area", "location", "reporter"],
+      properties: {
+        category:        { enum: ["illegalDumping", "missedCollection", "overflowingBin", "hazardousWaste"] },
+        wasteType:       { bsonType: "string" },
+        description:     { bsonType: "string" },
+        status:          { bsonType: "string" },
+        estimatedWeight: { bsonType: "number", minimum: 0 },
+        reportedAt:      { bsonType: "date" },
+        resolvedAt:      { bsonType: ["date", "null"] },
+        photos:          { bsonType: "array", items: { bsonType: "string" } },
+        area:            { bsonType: "string" },
+        binId:           { bsonType: "number" },
+        location: {
+          bsonType: "object",
+          required: ["type", "coordinates"],
+          properties: {
+            type:        { enum: ["Point"] },
+            coordinates: { bsonType: "array", minItems: 2, maxItems: 2, items: { bsonType: "number" } }
+          }
+        },
+        reporter: {
+          bsonType: "object",
+          required: ["username", "isVerifiedUser"],
+          properties: {
+            username:       { bsonType: "string" },
+            isVerifiedUser: { bsonType: "bool" }
+          }
+        }
+      }
+    }
+  },
+  validationLevel: "strict",
+  validationAction: "error"
+});
+
+// indexes: category + area for hotspot queries, reportedAt for date ranges, 2dsphere for geo queries,
+// reporter.username for citizen statistics, binId for the join with recyclingBins,
+// and a text index on description/wasteType for keyword search
+db.wasteReports.createIndex({ category: 1, area: 1 });
+db.wasteReports.createIndex({ reportedAt: -1 });
+db.wasteReports.createIndex({ location: "2dsphere" });
+db.wasteReports.createIndex({ "reporter.username": 1 });
+db.wasteReports.createIndex({ binId: 1 });
+db.wasteReports.createIndex({ description: "text", wasteType: "text" });
