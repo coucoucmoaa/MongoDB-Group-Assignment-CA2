@@ -66,3 +66,182 @@ db.createCollection("recyclingBins", {
 db.recyclingBins.createIndex({ binId: 1 }, { unique: true });
 db.recyclingBins.createIndex({ location: "2dsphere" });
 db.recyclingBins.createIndex({ area: 1 });
+
+
+// 3. Insert recycling bins (12 bins across several Paris arrondissements)
+// coordinates are [longitude, latitude] as required by GeoJSON
+db.recyclingBins.insertMany([
+  {
+    binId: 1001,
+    binType: "glass",
+    status: "full",
+    isOverflow: true,
+    fillLevel: 100.0,
+    capacity: 3000.0,
+    lastCollectedAt: daysAgo(12),
+    acceptedMaterials: ["glass bottles", "glass jars"],
+    area: "Paris 11e",
+    location: { type: "Point", coordinates: [2.3745, 48.8655] },
+    maintenanceHistory: [
+      { maintenancePurpose: "repair", description: "Lid hinge replaced", maintenanceDate: tsDaysAgo(40) }
+    ]
+  },
+  {
+    binId: 1002,
+    binType: "packaging",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 85.0,
+    capacity: 2500.0,
+    lastCollectedAt: daysAgo(4),
+    acceptedMaterials: ["plastic bottles", "cans", "cardboard", "paper"],
+    area: "Paris 11e",
+    location: { type: "Point", coordinates: [2.3692, 48.8533] },
+    maintenanceHistory: []
+  },
+  {
+    binId: 1003,
+    binType: "general",
+    status: "full",
+    isOverflow: true,
+    fillLevel: 100.0,
+    capacity: 100.0,
+    lastCollectedAt: daysAgo(6),
+    acceptedMaterials: ["household waste"],
+    area: "Paris 11e",
+    location: { type: "Point", coordinates: [2.3800, 48.8590] },
+    maintenanceHistory: [
+      { maintenancePurpose: "cleaning", description: "Bin washed after complaint about smell", maintenanceDate: tsDaysAgo(25) },
+      { maintenancePurpose: "repair", description: "Broken pedal fixed", maintenanceDate: tsDaysAgo(8) }
+    ]
+  },
+  {
+    binId: 1004,
+    binType: "general",
+    status: "full",
+    isOverflow: true,
+    fillLevel: 100.0,
+    capacity: 100.0,
+    lastCollectedAt: daysAgo(9),
+    acceptedMaterials: ["household waste"],
+    area: "Paris 18e",
+    location: { type: "Point", coordinates: [2.3497, 48.8838] },
+    maintenanceHistory: [
+      { maintenancePurpose: "cleaning", description: "Graffiti removed", maintenanceDate: tsDaysAgo(60) },
+      { maintenancePurpose: "replacement", description: "Bin replaced after vandalism", maintenanceDate: tsDaysAgo(30) },
+      { maintenancePurpose: "inspection", description: "Routine inspection", maintenanceDate: tsDaysAgo(5) }
+    ]
+  },
+  {
+    binId: 1005,
+    binType: "glass",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 60.0,
+    capacity: 3000.0,
+    lastCollectedAt: daysAgo(5),
+    acceptedMaterials: ["glass bottles", "glass jars"],
+    area: "Paris 18e",
+    location: { type: "Point", coordinates: [2.3387, 48.8845] },
+    maintenanceHistory: []
+  },
+  {
+    binId: 1006,
+    binType: "packaging",
+    status: "full",
+    isOverflow: true,
+    fillLevel: 100.0,
+    capacity: 2500.0,
+    lastCollectedAt: daysAgo(10),
+    acceptedMaterials: ["plastic bottles", "cans", "cardboard"],
+    area: "Paris 19e",
+    location: { type: "Point", coordinates: [2.3820, 48.8809] },
+    maintenanceHistory: [
+      { maintenancePurpose: "inspection", description: "Fill sensor checked", maintenanceDate: tsDaysAgo(15) }
+    ]
+  },
+  {
+    binId: 1007,
+    binType: "organic",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 45.5,
+    capacity: 240.0,
+    lastCollectedAt: daysAgo(2),
+    acceptedMaterials: ["food waste", "coffee grounds", "garden waste"],
+    area: "Paris 19e",
+    location: { type: "Point", coordinates: [2.3700, 48.8890] },
+    maintenanceHistory: []
+  },
+  {
+    binId: 1008,
+    binType: "textile",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 30.0,
+    capacity: 2000.0,
+    lastCollectedAt: daysAgo(20),
+    acceptedMaterials: ["clothes", "shoes", "household linen"],
+    area: "Paris 10e",
+    location: { type: "Point", coordinates: [2.3655, 48.8721] },
+    maintenanceHistory: []
+  },
+  {
+    binId: 1009,
+    binType: "paper",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 20.0,
+    capacity: 2500.0,
+    lastCollectedAt: daysAgo(1),
+    acceptedMaterials: ["paper", "newspapers", "magazines"],
+    area: "Paris 5e",
+    location: { type: "Point", coordinates: [2.3461, 48.8462] },
+    maintenanceHistory: [
+      { maintenancePurpose: "sensorCalibration", description: "Fill level sensor recalibrated", maintenanceDate: tsDaysAgo(3) }
+    ]
+  },
+  {
+    binId: 1010,
+    binType: "general",
+    status: "damaged",
+    isOverflow: false,
+    fillLevel: 10.0,
+    capacity: 100.0,
+    lastCollectedAt: daysAgo(3),
+    acceptedMaterials: ["household waste"],
+    area: "Paris 13e",
+    location: { type: "Point", coordinates: [2.3554, 48.8310] },
+    maintenanceHistory: [
+      { maintenancePurpose: "repair", description: "Lid broken, waiting for replacement part", maintenanceDate: tsDaysAgo(2) }
+    ]
+  },
+  {
+    binId: 1011,
+    binType: "glass",
+    status: "operational",
+    isOverflow: false,
+    fillLevel: 75.0,
+    capacity: 3000.0,
+    lastCollectedAt: daysAgo(7),
+    acceptedMaterials: ["glass bottles", "glass jars"],
+    area: "Paris 15e",
+    location: { type: "Point", coordinates: [2.2930, 48.8417] },
+    maintenanceHistory: []
+  },
+  {
+    binId: 1012,
+    binType: "general",
+    status: "outOfService",
+    isOverflow: false,
+    fillLevel: 0.0,
+    capacity: 100.0,
+    lastCollectedAt: daysAgo(30),
+    acceptedMaterials: ["household waste"],
+    area: "Paris 20e",
+    location: { type: "Point", coordinates: [2.3925, 48.8650] },
+    maintenanceHistory: [
+      { maintenancePurpose: "inspection", description: "Bin removed for road works", maintenanceDate: tsDaysAgo(28) }
+    ]
+  }
+]);
