@@ -1,0 +1,68 @@
+// CA2 - MongoDB Group Assignment - Group 7
+// City Trash System (Paris) - wasteReports & recyclingBins
+// Run with: mongosh < DBScript.txt in mongosh
+
+
+// PART 2 - Database Implementation
+
+// 1. Database
+// getSiblingDB is used instead of "use" so the script also works with load()
+db = db.getSiblingDB("cityTrashSystem");
+
+// dates are generated relative to today so time-based queries always return results
+var DAY = 24 * 60 * 60 * 1000;
+var daysAgo = (d) => new Date(Date.now() - d * DAY);
+var tsDaysAgo = (d) => Timestamp({ t: Math.floor((Date.now() - d * DAY) / 1000), i: 1 });
+
+
+// 2. recyclingBins collection
+// MongoDB is schema-less, so the schema from Part 1 is enforced with a $jsonSchema validator.
+// _id is generated automatically (ObjectId). fillLevel is a percentage, capacity is in litres.
+db.recyclingBins.drop();
+
+db.createCollection("recyclingBins", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["binId", "binType", "status", "isOverflow", "fillLevel", "capacity", "area", "location"],
+      properties: {
+        binId:             { bsonType: "number" },
+        binType:           { bsonType: "string" },
+        status:            { bsonType: "string" },
+        isOverflow:        { bsonType: "bool" },
+        fillLevel:         { bsonType: "number", minimum: 0, maximum: 100 },
+        capacity:          { bsonType: "number", minimum: 0 },
+        lastCollectedAt:   { bsonType: "date" },
+        acceptedMaterials: { bsonType: "array", items: { bsonType: "string" } },
+        area:              { bsonType: "string" },
+        location: {
+          bsonType: "object",
+          required: ["type", "coordinates"],
+          properties: {
+            type:        { enum: ["Point"] },
+            coordinates: { bsonType: "array", minItems: 2, maxItems: 2, items: { bsonType: "number" } }
+          }
+        },
+        maintenanceHistory: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["maintenancePurpose", "maintenanceDate"],
+            properties: {
+              maintenancePurpose: { bsonType: "string" },
+              description:        { bsonType: "string" },
+              maintenanceDate:    { bsonType: "timestamp" }
+            }
+          }
+        }
+      }
+    }
+  },
+  validationLevel: "strict",
+  validationAction: "error"
+});
+
+// indexes: unique binId, 2dsphere for geo queries (nearest bin...), area for grouping by arrondissement
+db.recyclingBins.createIndex({ binId: 1 }, { unique: true });
+db.recyclingBins.createIndex({ location: "2dsphere" });
+db.recyclingBins.createIndex({ area: 1 });
