@@ -486,3 +486,24 @@ db.wasteReports.find(
   { estimatedWeight: { $gt: 30 } },
   { _id: 0, category: 1, wasteType: 1, estimatedWeight: 1, area: 1 }
 ).sort({ estimatedWeight: -1 });
+
+// Query 4 - Bins that accept glass bottles
+// Result: 3 bins - 1001 (Paris 11e), 1005 (Paris 18e), 1011 (Paris 15e)
+db.recyclingBins.find(
+  { acceptedMaterials: "glass bottles" },
+  { _id: 0, binId: 1, binType: 1, area: 1, acceptedMaterials: 1 }
+);
+
+// Query 5 - Reports with at least 2 photos, with the number of photos
+// Result: 4 reports - 3 with 2 photos (Paris 18e, 11e, 13e) and 1 with 3 photos (Paris 20e)
+db.wasteReports.find(
+  { $expr: { $gte: [{ $size: "$photos" }, 2] } },
+  { _id: 0, category: 1, area: 1, description: 1, nbPhotos: { $size: "$photos" } }
+);
+
+// Query 6 - Bins that had a repair during the last 30 days
+// Result: 2 bins - 1003 (Paris 11e) and 1010 (Paris 13e)
+db.recyclingBins.find(
+  { maintenanceHistory: { $elemMatch: { maintenancePurpose: "repair", maintenanceDate: { $gte: tsDaysAgo(30) } } } },
+  { _id: 0, binId: 1, area: 1, status: 1, maintenanceHistory: 1 }
+);
