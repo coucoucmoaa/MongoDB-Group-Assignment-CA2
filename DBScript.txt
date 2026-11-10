@@ -507,3 +507,49 @@ db.recyclingBins.find(
   { maintenanceHistory: { $elemMatch: { maintenancePurpose: "repair", maintenanceDate: { $gte: tsDaysAgo(30) } } } },
   { _id: 0, binId: 1, area: 1, status: 1, maintenanceHistory: 1 }
 );
+
+// Query 7 - Keyword search: reports mentioning a bad smell
+// $text uses the text index created on description and wasteType, results sorted by relevance score
+// Result: 3 reports (Paris 19e, 11e and 18e)
+db.wasteReports.find(
+  { $text: { $search: "smell" } },
+  { _id: 0, category: 1, area: 1, description: 1, score: { $meta: "textScore" } }
+).sort({ score: { $meta: "textScore" } });
+
+// Query 8 - Bins less than 2 km away from Place de la Republique, nearest first
+// geospatial query on the GPS location using the 2dsphere index ($near sorts by distance)
+// Result: 4 bins - 1008, 1001, 1003 and 1002
+db.recyclingBins.find(
+  {
+    location: {
+      $near: {
+        $geometry: { type: "Point", coordinates: [2.3631, 48.8674] },
+        $maxDistance: 2000
+      }
+    }
+  },
+  { _id: 0, binId: 1, binType: 1, area: 1, status: 1 }
+);
+
+// Query 9 - Illegal dumping hotspots: top 5 areas with the most unresolved illegal dumping reports in the past month
+// aggregation pipeline: $match (filter) -> $group (count per area) -> $sort -> $limit
+// Result: Paris 18e (3 reports), Paris 11e (2), then Paris 10e, 19e and 20e (1 each)
+db.wasteReports.aggregate([
+  {
+    $match: {
+      category: "illegalDumping",
+      status: { $in: ["reported", "inProgress"] },
+      reportedAt: { $gte: daysAgo(30) }
+    }
+  },
+  {
+    $group: {
+      _id: "$area",
+      unresolvedReports: { $sum: 1 },
+      totalEstimatedWeight: { $sum: "$estimatedWeight" }
+    }
+  },
+  { $sort: { unresolvedReports: -1, _id: 1 } },
+  { $limit: 5 },
+  { $project: { _id: 0, area: "$_id", unresolvedReports: 1, totalEstimatedWeight: 1 } }
+]);
