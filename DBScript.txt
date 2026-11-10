@@ -1,6 +1,5 @@
 // CA2 - MongoDB Group Assignment - Group 7
 // City Trash System (Paris) - wasteReports & recyclingBins
-// Run with: mongosh < DBScript.txt in mongosh
 
 
 // PART 2 - Database Implementation
@@ -597,4 +596,37 @@ db.wasteReports.aggregate([
   { $group: { _id: "$area", avgResolutionHours: { $avg: "$resolutionHours" }, resolvedReports: { $sum: 1 } } },
   { $sort: { avgResolutionHours: 1 } },
   { $project: { _id: 0, area: "$_id", avgResolutionHours: { $round: ["$avgResolutionHours", 1] }, resolvedReports: 1 } }
+]);
+
+// Query 13 - Waste collected impact: total weight of waste collected (resolved reports) per type of waste
+// adaptation of the "Community Cleanup Impact" example: $group by wasteType with $sum on estimatedWeight
+// Result: bulky items 90 kg (2 reports), glass 67 kg (3), household waste 38.5 kg (4), plastic 27 kg (2), organic 12 kg (1), batteries 3.5 kg (1)
+db.wasteReports.aggregate([
+  { $match: { status: "resolved" } },
+  { $group: { _id: "$wasteType", totalWeightKg: { $sum: "$estimatedWeight" }, resolvedReports: { $sum: 1 } } },
+  { $sort: { totalWeightKg: -1 } },
+  { $project: { _id: 0, wasteType: "$_id", totalWeightKg: 1, resolvedReports: 1 } }
+]);
+
+// Query 14 - Maintenance activity: number of interventions per maintenance purpose and the bins concerned
+// $unwind creates one document per element of the maintenanceHistory array so the embedded documents can be grouped
+// Result: inspection 3 (bins 1012, 1004, 1006), repair 3 (bins 1001, 1003, 1010), cleaning 2 (bins 1003, 1004),
+// replacement 1 (bin 1004), sensorCalibration 1 (bin 1009)
+db.recyclingBins.aggregate([
+  { $unwind: "$maintenanceHistory" },
+  { $group: { _id: "$maintenanceHistory.maintenancePurpose", interventions: { $sum: 1 }, bins: { $addToSet: "$binId" } } },
+  { $sort: { interventions: -1, _id: 1 } },
+  { $project: { _id: 0, maintenancePurpose: "$_id", interventions: 1, bins: 1 } }
+]);
+
+// Query 15 - Bin status per area: number of bins, overflowing bins and average fill level, most critical areas first
+// $cond counts only the bins where isOverflow is true
+// Result: Paris 11e (3 bins, 2 overflowing, 95% average fill), Paris 18e (2 bins, 1 overflowing, 80% average fill),
+// Paris 19e (2 bins, 1 overflowing, 72.8% average fill), Paris 15e (1 bin, 0 overflowing, 75% average fill),
+// Paris 10e (1 bin, 0 overflowing, 30% average fill), Paris 5e (1 bin, 0 overflowing, 20% average fill),
+// Paris 13e (1 bin, 0 overflowing, 10% average fill), Paris 20e (1 bin, 0 overflowing, 0% average fill)
+db.recyclingBins.aggregate([
+  { $group: { _id: "$area", totalBins: { $sum: 1 }, overflowingBins: { $sum: { $cond: ["$isOverflow", 1, 0] } }, avgFillLevel: { $avg: "$fillLevel" } } },
+  { $sort: { overflowingBins: -1, avgFillLevel: -1 } },
+  { $project: { _id: 0, area: "$_id", totalBins: 1, overflowingBins: 1, avgFillLevel: { $round: ["$avgFillLevel", 1] } } }
 ]);
