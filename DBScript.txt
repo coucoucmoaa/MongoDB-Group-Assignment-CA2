@@ -630,3 +630,39 @@ db.recyclingBins.aggregate([
   { $sort: { overflowingBins: -1, avgFillLevel: -1 } },
   { $project: { _id: 0, area: "$_id", totalBins: 1, overflowingBins: 1, avgFillLevel: { $round: ["$avgFillLevel", 1] } } }
 ]);
+
+
+// PART 3 - adminRole and Admin user
+
+// remove the role and the user if they already exist, so the script can be run again
+if (db.getUser("Admin")) { db.dropUser("Admin"); }
+if (db.getRole("adminRole")) { db.dropRole("adminRole"); }
+
+// adminRole: Create (insert), Read (find), Write (update) and Delete (remove) on each collection
+// Result (tested with authentication enabled): Admin can insert, find, update and delete documents in both collections,
+// but cannot drop a collection or access another database
+db.createRole({
+  role: "adminRole",
+  privileges: [
+    {
+      resource: { db: "cityTrashSystem", collection: "wasteReports" },
+      actions: ["insert", "find", "update", "remove"]
+    },
+    {
+      resource: { db: "cityTrashSystem", collection: "recyclingBins" },
+      actions: ["insert", "find", "update", "remove"]
+    }
+  ],
+  roles: []
+});
+
+// Admin user with the adminRole
+db.createUser({
+  user: "Admin",
+  pwd: "pa33word",
+  roles: [{ role: "adminRole", db: "cityTrashSystem" }]
+});
+
+// check: shows the role with its privileges and the user with its role
+db.getRole("adminRole", { showPrivileges: true });
+db.getUser("Admin");
