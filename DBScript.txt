@@ -459,3 +459,30 @@ db.wasteReports.insertMany([
     area: "Paris 5e", location: { type: "Point", coordinates: [2.3461, 48.8462] },
     reporter: { username: "nadia.k", isVerifiedUser: true } }
 ]);
+
+
+// PART 3 - Querying
+
+// Query 1 - Unresolved reports (reported or in progress), most recent first
+// basic select with a filter on a list of values ($in)
+// Result: 15 reports
+db.wasteReports.find(
+  { status: { $in: ["reported", "inProgress"] } },
+  { _id: 0, category: 1, area: 1, status: 1, reportedAt: 1 }
+).sort({ reportedAt: -1 });
+
+// Query 2 - Overflowing bins, the ones collected the longest time ago first
+// filter on a boolean + sort on a date + projection
+// Result: 4 bins - 1001, 1006, 1004, 1003
+db.recyclingBins.find(
+  { isOverflow: true },
+  { _id: 0, binId: 1, binType: 1, area: 1, fillLevel: 1, lastCollectedAt: 1 }
+).sort({ lastCollectedAt: 1 });
+
+// Query 3 - Heaviest reports, heaviest first comparison operator ($gt)
+// on a double + sort
+// Result: 7 reports
+db.wasteReports.find(
+  { estimatedWeight: { $gt: 30 } },
+  { _id: 0, category: 1, wasteType: 1, estimatedWeight: 1, area: 1 }
+).sort({ estimatedWeight: -1 });
