@@ -553,3 +553,48 @@ db.wasteReports.aggregate([
   { $limit: 5 },
   { $project: { _id: 0, area: "$_id", unresolvedReports: 1, totalEstimatedWeight: 1 } }
 ]);
+
+// Query 10 - Bin overflow tracking: bins with the most overflow alerts reported by citizens over the last 3 weeks
+// $group counts the alerts per binId, then $lookup joins recyclingBins (cross-reference) to get the bin details
+// Result: bin 1003 (3 alerts), 1001 (2), 1006 (2), 1004 (1)
+db.wasteReports.aggregate([
+  { $match: { category: "overflowingBin", reportedAt: { $gte: daysAgo(21) } } },
+  { $group: { _id: "$binId", overflowAlerts: { $sum: 1 }, lastAlert: { $max: "$reportedAt" } } },
+  { $sort: { overflowAlerts: -1, _id: 1 } },
+  { $lookup: { from: "recyclingBins", localField: "_id", foreignField: "binId", as: "bin" } },
+  { $unwind: "$bin" },
+  {
+    $project: {
+      _id: 0,
+      binId: "$_id",
+      overflowAlerts: 1,
+      lastAlert: 1,
+      area: "$bin.area",
+      binType: "$bin.binType",
+      fillLevel: "$bin.fillLevel",
+      lastCollectedAt: "$bin.lastCollectedAt"
+    }
+  }
+]);
+
+// Query 11 - Citizen engagement: most active citizens with verified reports over the last 6 months
+// $match on a field of the embedded document reporter, $addToSet lists the different categories reported
+// Result: marie_dupont (6 reports), sofiane75 (4), then camille_r, julien.m and leaD (3 each)
+db.wasteReports.aggregate([
+  { $match: { "reporter.isVerifiedUser": true, reportedAt: { $gte: daysAgo(182) } } },
+  { $group: { _id: "$reporter.username", reportsSubmitted: { $sum: 1 }, categories: { $addToSet: "$category" } } },
+  { $sort: { reportsSubmitted: -1, _id: 1 } },
+  { $limit: 5 },
+  { $project: { _id: 0, username: "$_id", reportsSubmitted: 1, categories: 1 } }
+]);
+
+// Query 12 - Collection response efficiency: average resolution time of missed collection reports per area, fastest first
+// $subtract between two dates gives milliseconds, divided by 3 600 000 to get hours
+// Result: Paris 19e (12 h), Paris 11e (36 h), Paris 18e (72 h), Paris 15e (96 h)
+db.wasteReports.aggregate([
+  { $match: { category: "missedCollection", resolvedAt: { $ne: null } } },
+  { $project: { area: 1, resolutionHours: { $divide: [{ $subtract: ["$resolvedAt", "$reportedAt"] }, 3600000] } } },
+  { $group: { _id: "$area", avgResolutionHours: { $avg: "$resolutionHours" }, resolvedReports: { $sum: 1 } } },
+  { $sort: { avgResolutionHours: 1 } },
+  { $project: { _id: 0, area: "$_id", avgResolutionHours: { $round: ["$avgResolutionHours", 1] }, resolvedReports: 1 } }
+]);
